@@ -1,0 +1,354 @@
+#!/usr/bin/env python
+#
+# Copyright (c) 2023 Samsung Electronics Co., Ltd All Rights Reserved
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import sys
+import getopt
+import os
+import re
+from abc import *
+
+
+class template_gen(metaclass=ABCMeta):
+
+    @abstractmethod
+    def __init__(self, ptype, name) -> None:
+        self.ptype = ptype
+        self.name = name
+        self.camel_name = name[0].lower() + name[1:]
+        self.snake_name = self._pascal_to_snake()
+        self.path = os.path.abspath("../plugins/" + self.camel_name)
+        self.cmake_path = os.path.join(self.path, 'CMakeLists.txt')
+        self.code_path = ''
+
+    @abstractmethod
+    def create_cmake_file(self) -> None:
+        print('  CMake file: {}'.format(self.cmake_path))
+
+    @abstractmethod
+    def create_code_file(self) -> None:
+        print('  code file: {}'.format(self.code_path))
+
+    @abstractmethod
+    def generate(self) -> None:
+        if not os.path.exists(self.path):
+            os.makedirs(self.path)
+        print('  Plugin root path: {}'.format(self.path))
+
+        srcs = os.path.join(self.path, 'srcs')
+        os.makedirs(srcs)
+        print('  Plugin srcs path: {}'.format(srcs))
+
+        models = os.path.join(self.path, 'models')
+        os.makedirs(models)
+        print('  Plugin models path: {}'.format(models))
+
+        self.create_cmake_file()
+        self.create_code_file()
+        with open('../plugins/CMakeLists.txt', 'r') as f:
+            lines = f.readlines()
+
+        for i in range(len(lines)):
+            if lines[i].startswith('ADD_SUBDIRECTORY') is False:
+                lines.insert(i, 'ADD_SUBDIRECTORY(' + self.camel_name + ')\n')
+                break
+
+        with open('../plugins/CMakeLists.txt', 'w') as f:
+            f.writelines(lines)
+
+        print('\n  Added to OVI Plugin CMakeFile.')
+
+    def _pascal_to_snake(self) -> str:
+        pattern = re.compile(r'(?<!^)(?=[A-Z])')
+        return pattern.sub('_', self.name).lower()
+
+
+class template_py(template_gen):
+    def __init__(self, ptype, name) -> None:
+        super().__init__(ptype, name)
+        self.code_path = os.path.join(self.path, self.camel_name + '.py')
+
+    def create_cmake_file(self) -> None:
+        super().create_cmake_file()
+        with open(self.cmake_path, 'w') as f:
+            f.write(
+                'SET(PLUGINS_FLAGS "${PLUGINS_FLAGS} -DENABLE_'
+                + self.name.upper() + '" CACHE STRING "" FORCE)\n\n')
+            f.write(
+                'INSTALL(\n\tFILES "'
+                + self.camel_name
+                + '.py"\n\tDESTINATION ${PLUGIN_INSTALL_DIR}\n)\n\n')
+            f.write(
+                'INSTALL(\n\tDIRECTORY "srcs" "models"\n\tDESTINATION ${PLUGIN_INSTALL_DIR}\n')
+            f.write('\tOPTIONAL\n)\n')
+
+    def create_code_file(self) -> None:
+        super().create_code_file()
+        with open(self.code_path, 'w') as f:
+            f.write('import srcs.OVICommon as OVICommon\n')
+            f.write('from typing import Dict, Tuple, List\n\n\n')
+            f.write('def setAttrs(attrs: Dict[str, str]) -> int:\n')
+            f.write('\t# \'attrs\' contains the values provided by pluginAttributeList().\n')
+            f.write('\t# If there is no issue, returns 0. otherwise, returns -1\n')
+            f.write('\tpass\n\n\n')
+
+            if self.ptype == 'video':
+                f.write('def process(width, height, frame, total_frame_num=0, fps=0.0)')
+                f.write(' -> Tuple[bool, any]:\n')
+            else:
+                f.write('def process(channels, samplerate, format, samples, frame)')
+                f.write(' -> Tuple[bool, any]:\n')
+
+            f.write('\t# \'frame\' is affected by pluginFormat().\n')
+            f.write('\t#\n')
+            f.write('\t# return values:\n')
+            f.write('\t#   bool : if detect something, set \'True\'. otherwise, set \'False\'\n')
+            f.write('\t#   any : extra data\n')
+            f.write('\tpass\n\n\n')
+
+            f.write('def pluginName() -> str:\n')
+            f.write('\treturn "' + self.name + '"\n\n\n')
+            f.write('def pluginType() -> int:\n')
+            if self.ptype == 'video':
+                f.write('\treturn OVICommon.Type.PLUGIN_TYPE_VIDEO_DETECT.value\n\n\n')
+            else:
+                f.write('\treturn OVICommon.Type.PLUGIN_TYPE_AUDIO_DETECT.value\n\n\n')
+
+            f.write('def pluginFormat() -> List[int]:\n')
+            f.write('\t# You can specify which format to use.\n')
+            f.write('\t# Multiple formats can be specified.\n')
+            f.write('\t# Subsequent formats are used ')
+            f.write('if the core does not provide format conversion for the first.\n')
+            if self.ptype == 'video':
+                f.write('\t# Please check OVICommon.VideoFormat\n')
+            else:
+                f.write('\t# Please check OVICommon.AudioFormat\n')
+            f.write('\t# e.g.\n')
+            f.write('\t#   return [OVICommon.AudioFormat.AUDIO_FORMAT_FLTP.value, ')
+            f.write('OVICommon.AudioFormat.AUDIO_FORMAT_U8.value]\n')
+            f.write('\tpass\n\n\n')
+
+            f.write('def pluginMetaForm() -> int:\n')
+            f.write('\t# Please write the return type of this plugin.\n')
+            f.write('\t# Please check OVICommon.MetaForm\n')
+            f.write('\t# e.g.\n')
+            f.write('\t#   return OVICommon.MetaForm.METAFORM_DOUBLE.value\n')
+            f.write('\tpass\n\n\n')
+
+            f.write('def pluginDescription() -> str:\n')
+            f.write('\t# Please write a description for this plugin.\n')
+            f.write('\tpass\n\n\n')
+
+            f.write('def pluginAttributeList() -> List[Tuple[str, str, str]]:\n')
+            f.write('\t# Please write the necessary attributes to use this plugin.\n')
+            f.write('\t# return values:\n')
+            f.write('\t#   str : keyword\n')
+            f.write('\t#   str : type\n')
+            f.write('\t#   str : description\n')
+            f.write('\t#\n')
+            f.write('\t# e.g.\n')
+            f.write('\t#   return [("threshold", "float", "db threshold"), ')
+            f.write('("inverse", "boolean", "silence detect")]\n')
+            f.write('\tpass\n\n')
+            f.close()
+
+    def generate(self) -> None:
+        super().generate()
+
+
+class template_cpp(template_gen):
+    def __init__(self, ptype, name) -> None:
+        super().__init__(ptype, name)
+        self.code_path = os.path.join(self.path, self.camel_name + '.cpp')
+
+    def create_cmake_file(self) -> None:
+        super().create_cmake_file()
+        with open(self.cmake_path, 'w') as f:
+            f.write('SET(TARGET_LIB ' + self.snake_name + ')\n\n')
+            f.write('ADD_LIBRARY(${TARGET_LIB} SHARED '
+                    + self.camel_name + '.cpp)\n\n')
+            f.write(
+                'SET(PLUGINS_FLAGS "${PLUGINS_FLAGS} -DENABLE_'
+                + self.name.upper() + '" CACHE STRING "" FORCE)\n')
+            f.write('INSTALL(TARGETS ${TARGET_LIB} DESTINATION ${PLUGIN_INSTALL_DIR})\n\n')
+            f.write(
+                'INSTALL(\n\tDIRECTORY "srcs" "models"\n\tDESTINATION ${PLUGIN_INSTALL_DIR}\n')
+            f.write('\tOPTIONAL\n)\n')
+
+    def create_code_file(self) -> None:
+        super().create_code_file()
+        print('  cpp file: {}'.format(self.code_path))
+        with open(self.code_path, 'w') as f:
+            f.write('#include "IPluginProcess.h"\n\n')
+            f.write('using namspace ovi;"\n\n')
+            f.write('class ' + self.name + ' : public IPluginProcess\n')
+            f.write('{\npublic:\n')
+            f.write('\t' + self.name + '() = default;\n')
+            f.write('\t~' + self.name + '() = default;\n\n')
+            f.write(
+                '\tint setAttrs(const std::map<std::string, std::string>& attrs) override;\n')
+            f.write('\tOutcome process(ovi::OVIFrame* frame) override;\n};\n\n')
+
+            f.write('int ' + self.name)
+            f.write('::setAttrs(const std::map<std::string, std::string>& attrs)\n{\n')
+            f.write('\t// \'attrs\' contains the values provided by pluginAttributeList().\n')
+            f.write(
+                '\t// If there is no issue, returns OVI_ERROR_NONE. ')
+            f.write('otherwise, returns OVI_ERROR_INVALID_PARAMETER.\n')
+            f.write('\treturn OVI_ERROR_NONE;\n}\n\n')
+
+            f.write('Outcome ' + self.name + '::process(ovi::OVIFrame* frame)\n{\n')
+            f.write('\t// Format of \'frame\' is affected by supportFormat().\n')
+            f.write('\t// return values:\n')
+            f.write(
+                '\t//   bool : if detect something, set \'True\'. otherwise, set \'False\'\n')
+            f.write('\t//   Details : extra data\n')
+            f.write('\treturn {};\n}\n\n')
+
+            f.write('extern "C" class IPlugin *createPlugin(void)\n{\n')
+            f.write('\treturn new ' + self.name + '();\n}\n\n')
+
+            f.write('extern "C" void destroyPlugin(class IPlugin *plugin)\n{\n')
+            f.write('\tdelete plugin;\n}\n\n')
+
+            f.write('extern "C" const char *name()\n{\n')
+            f.write('\treturn "' + self.name + '";\n}\n\n')
+
+            f.write('extern "C" PluginType type()\n{\n')
+            if self.ptype == 'video':
+                f.write('\treturn PLUGIN_TYPE_VIDEO_DETECT;\n}\n\n')
+            else:
+                f.write('\treturn PLUGIN_TYPE_AUDIO_DETECT;\n}\n\n')
+
+            f.write('extern "C" void *supportFormat()\n{\n')
+            f.write('\t// You can specify which format to use.\n')
+            f.write('\t// Multiple formats can be specified.\n')
+            f.write('\t// Subsequent formats are used ')
+            f.write('if the core does not provide format conversion for the first.\n')
+            if self.ptype == 'video':
+                f.write('\t// Please check \'VideoFormat\' in \'Types.h\'\n')
+            else:
+                f.write('\t// Please check \'AudioFormat\' in \'Types.h\'\n')
+            f.write('\t// e.g.\n')
+            f.write('\t//   static std::vector<int> formats {\n')
+            f.write('\t//       AUDIO_FORMAT_FLTP\n')
+            f.write('\t//   };\n')
+            f.write('\tstatic std::vector<int> formats {\n\t};\n\n')
+            f.write('\treturn &formats;\n}\n\n')
+
+            f.write('extern "C" MetaForm supportMetaForm()\n{\n')
+            f.write('\t// Please write the return type of this plugin.\n')
+            f.write('\treturn METAFORM_NONE;\n}\n\n')
+
+            f.write('extern "C" const char *description()\n{\n')
+            f.write('\t// Please write a description for this plugin.\n')
+            f.write('\treturn "";\n}\n\n')
+
+            f.write('extern "C" void *attributeList()\n{\n')
+            f.write('\t// Please write the necessary attributes to use this plugin.\n')
+            f.write('\t// e.g.\n')
+            f.write('\t// static std::vector<Attribute> attrs {\n')
+            f.write('\t//     {"threshold", "double", "db threshold"},\n')
+            f.write('\t//     {"inverse", "0 or 1", "silence detect"},\n')
+            f.write('\t// };\n')
+            f.write('\tstatic std::vector<Attribute> attrs {\n\t};\n\n')
+            f.write('\treturn &attrs;\n}\n\n')
+
+    def generate(self) -> None:
+        super().generate()
+
+
+def print_help():
+    print('\n(HOW TO)')
+    print('\tgen [plugin type] [plugin name] [language type]')
+    print('\t\tplugin type :')
+    print('\t\t\t-v, --video : video detector')
+    print('\t\t\t-a, --audio : audio detector\n')
+    print('\t\tplugin name (-n, --name) : \n\t\t\tPlugin name(Pascal case)\n')
+    print('\t\tlanguage type (-l, --lang) :')
+    print('\t\t\tc : c/c++')
+    print('\t\t\tpy : python\n')
+    print('\te.g.')
+    print('\t\t$ gen -v -n FooBarPy -l py')
+    print('\t\t$ gen --audio --name FooBarC --lang c\n\n')
+
+
+def check_params(name, ptype, lang):
+    if name == '':
+        print('Error: Invalid parameter: Plugin name is empty.')
+        return False
+
+    if ptype not in ('video', 'audio'):
+        print('Error: Invalid parameter: No plugin type specified.')
+        return False
+
+    if lang not in ('c', 'py'):
+        print('Error: Invalid parameter: Unsupported language or not specified.')
+        return False
+
+    return True
+
+
+def main(argv):
+    pl_name = ''
+    pl_type = ''
+    lang = ''
+
+    print('\n[Plugin Template Generator]')
+
+    try:
+        long_opts = ["help", "video", "audio", "name=", "lang="]
+        opts, _ = getopt.getopt(argv[1:], "hvan:l:", long_opts)
+
+    except getopt.GetoptError as err:
+        print('Error: Invalid options:', err)
+        print_help()
+        sys.exit(2)
+
+    for opt, arg in opts:
+        if opt in ("-h", "--help"):
+            print_help()
+            sys.exit()
+
+        elif opt in ("-v", "--video"):
+            pl_type = 'video'
+
+        elif opt in ("-a", "--audio"):
+            pl_type = 'audio'
+
+        elif opt in ("-n", "--name"):
+            pl_name = arg
+
+        elif opt in ("-l", "--lang"):
+            lang = arg.lower()
+
+    if not check_params(pl_name, pl_type, lang):
+        print_help()
+        sys.exit(2)
+
+    try:
+        if lang == 'py':
+            template_py(pl_type, pl_name).generate()
+        elif lang == 'c':
+            template_cpp(pl_type, pl_name).generate()
+
+    except Exception as e:
+        print('Error: Create template failed :', e)
+
+    print('\n  {} {} plugin creation complete: [{}]\n'.format(lang, pl_type, pl_name))
+
+
+if __name__ == "__main__":
+    main(sys.argv)

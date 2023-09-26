@@ -1,0 +1,2 @@
+ADD_SUBDIRECTORY(ovi_session)
+ADD_SUBDIRECTORY(ovi_plugins)
