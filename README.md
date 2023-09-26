@@ -73,7 +73,7 @@ This command builds and installs the OVI library with default plugins, tools and
 The Open Video Intelligence provides a cmake build.
 To build and install, use the command as follows:
   ```console
-  $ cmake -B ./build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -G Ninja
+  $ cmake -B ./build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DENABLE_PYTHON=ON -G Ninja
   $ sudo ninja install
   ```
 
@@ -86,7 +86,7 @@ You can use cli tools as follow.
 
    ```console
    $ ovi_plugins --list-all
-   $ ovi_session -i ./movie.mp4 -r FFMPEGRender'(path=./result.mp4)' -skv 3 -l 'FaceDetect' -verbose 4
+   $ ovi_session -i ./movie.mp4 -r FFMPEGRender'(path=./result.mp4)' -skv 3 -l 'AudioDetect' -verbose 4
    ```
 
 ## How to contribute
