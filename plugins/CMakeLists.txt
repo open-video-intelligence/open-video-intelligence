@@ -1,4 +1,5 @@
 ADD_SUBDIRECTORY(audioDetect)
+ADD_SUBDIRECTORY(faceDetect)
 ADD_SUBDIRECTORY(otioRender)
 ADD_SUBDIRECTORY(ffmpegRender)
 ADD_SUBDIRECTORY(audioEffectMarker)

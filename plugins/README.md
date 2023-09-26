@@ -1,9 +1,36 @@
 # Detect Type Plugin
 Now, you can use the following detect type plugins in open-video-intelligence:
-- [AudioDetection](#Audio-detection)
+- [AudioDetect](#Audio-detect)
+- [FaceDetect](#Face-detect)
 
-## Audio Detection
+## Audio Detect
 Detecting audio
+
+## Face detect
+Detecting faces
+### Build Requires
+1) opencv (https://opencv.org/)</br>
+Install opencv for using 'plugins/faceDetect'.</br>
+Run the following command:
+   ```console
+   $ sudo apt install libopencv-dev
+   ```
+2) Model files</br>
+This plugin requires pretrained models. (`haarcascade_eye.xml`, and `haarcascade_frontalface_alt2.xml`)</br>
+The pretrained models are located in the data folder in the OpenCV installation or can be found [here](https://github.com/opencv/opencv).</br>
+Add model files by referring to the following structure.
+create a 'models' folder if necessary:</br>
+   ```bash
+   ├── faceDetect
+   │   ├── models
+   │   │   ├── haarcascade_eye.xml
+   │   │   └── haarcascade_frontalface_alt2.xml
+   │   ├── CMakeLists.txt
+   │   └── faceDetect.cpp
+   ├── __init__.py
+   ├── CMakeLists.txt
+   └── README.md
+   ```
 
 # Effect Type Plugin
 ## Audio effect maker
