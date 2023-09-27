@@ -73,6 +73,7 @@ Run the following command:
 # Python plugin
 Now, you can use the following detect type python plugins.
 - [AudioDetectPy](#AudioDetectPy)
+- [FaceDetectPy](#FaceDetectPy)
 
 ## AudioDetectPy
 Provides the decibels of audio.
@@ -84,4 +85,34 @@ Run the following command:
    $ pip install --upgrade pip
 
    $ pip install numpy
+   ```
+
+## FaceDetectPy
+Provides face detection results using [MediaPipe](https://developers.google.com/mediapipe). </br>
+
+### Requires
+1) MediaPipe (https://developers.google.com/mediapipe) </br>
+MediaPipe Framework is the low-level component used to build efficient on-device machine learning pipelines, similar to the premade MediaPipe Solutions.</br>
+Run the following command:
+   ```console
+   # Requires the latest pip
+   $ pip install --upgrade pip
+
+   $ pip install mediapipe
+   ```
+
+2) Pretrained model</br>
+This plugin requires the pretrained model. (`blaze_face_short_range.tflite`)</br>
+The pretrained model can be found [here](https://developers.google.com/mediapipe/solutions/vision/face_detector#get_started).</br>
+Add model files by referring to the following structure.
+create a 'models' folder if necessary:</br>
+   ```bash
+   ├── faceDetectPy
+   │   ├── models
+   │   │   └── blaze_face_short_range.tflite
+   │   ├── CMakeLists.txt
+   │   └── faceDetect.py
+   ├── __init__.py
+   ├── CMakeLists.txt
+   └── README.md
    ```
