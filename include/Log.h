@@ -35,7 +35,7 @@ typedef enum {
 	LOG_LEVEL_OFF,
 } LogLevel;
 
-static LogLevel logLevel = LOG_LEVEL_ALL;
+static LogLevel logLevel = LOG_LEVEL_OFF;
 
 void init(void);
 void init(int level);
