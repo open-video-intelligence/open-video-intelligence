@@ -35,11 +35,10 @@ typedef enum {
 	LOG_LEVEL_OFF,
 } LogLevel;
 
-static LogLevel logLevel = LOG_LEVEL_OFF;
-
 void init(void);
 void init(int level);
 void init(const std::string& path);
+bool validateLogLevel(LogLevel level);
 
 } // ovi::logger
 
@@ -47,25 +46,25 @@ void init(const std::string& path);
 #include <dlog.h>
 
 #define LOG_DEBUG(...) do { \
-	if (ovi::logger::logLevel > ovi::logger::LOG_LEVEL_DEBUG) \
+	if (validateLogLevel(ovi::logger::LOG_LEVEL_DEBUG)) \
 		break; \
 	dlog_print (DLOG_DEBUG, TAG_NAME, __VA_ARGS__); \
 } while(0)
 
 #define LOG_INFO(...) do { \
-	if (ovi::logger::logLevel > ovi::logger::LOG_LEVEL_INFO) \
+	if (validateLogLevel(ovi::logger::LOG_LEVEL_INFO)) \
 		break; \
 	dlog_print (DLOG_INFO, TAG_NAME, __VA_ARGS__) \
 } while(0)
 
 #define LOG_WARN(...) do { \
-	if (ovi::logger::logLevel > ovi::logger::LOG_LEVEL_WARNING) \
+	if (validateLogLevel(ovi::logger::LOG_LEVEL_WARNING)) \
 		break; \
 	dlog_print (DLOG_WARN, TAG_NAME, __VA_ARGS__) \
 } while(0)
 
 #define LOG_ERROR(...) do { \
-	if (ovi::logger::logLevel > ovi::logger::LOG_LEVEL_ERROR) \
+	if (validateLogLevel(ovi::logger::LOG_LEVEL_ERROR)) \
 		break; \
 	dlog_print (DLOG_ERROR, TAG_NAME, __VA_ARGS__) \
 } while(0)
@@ -80,25 +79,25 @@ void init(const std::string& path);
 static ovi::StdLog stdLogger;
 
 #define LOG_DEBUG(...) do { \
-	if (ovi::logger::logLevel > ovi::logger::LOG_LEVEL_DEBUG) \
+	if (validateLogLevel(ovi::logger::LOG_LEVEL_DEBUG)) \
 		break; \
 	stdLogger.print(ovi::logger::LOG_LEVEL_DEBUG, __FILE__, __func__, __LINE__, __VA_ARGS__); \
 } while(0)
 
 #define LOG_INFO(...) do { \
-	if (ovi::logger::logLevel > ovi::logger::LOG_LEVEL_INFO) \
+	if (validateLogLevel(ovi::logger::LOG_LEVEL_INFO)) \
 		break; \
 	stdLogger.print(ovi::logger::LOG_LEVEL_INFO, __FILE__, __func__, __LINE__, __VA_ARGS__); \
 } while(0)
 
 #define LOG_WARN(...) do { \
-	if (ovi::logger::logLevel > ovi::logger::LOG_LEVEL_WARNING); \
+	if (validateLogLevel(ovi::logger::LOG_LEVEL_WARNING)); \
 		break; \
 	stdLogger.print(ovi::logger::LOG_LEVEL_WARNING, __FILE__, __func__, __LINE__, __VA_ARGS__); \
 } while(0)
 
 #define LOG_ERROR(...) do { \
-	if (ovi::logger::logLevel > ovi::logger::LOG_LEVEL_ERROR) \
+	if (validateLogLevel(ovi::logger::LOG_LEVEL_ERROR)) \
 		break; \
 	stdLogger.print(ovi::logger::LOG_LEVEL_ERROR, __FILE__, __func__, __LINE__, __VA_ARGS__); \
 } while(0)

@@ -22,6 +22,10 @@ using namespace ovi;
 
 constexpr int DEFAULT_LOG_LEVEL = 0;
 
+namespace ovi::logger {
+static LogLevel logLevel = LOG_LEVEL_OFF;
+}
+
 void logger::init(void)
 {
 	logger::init(Configuration::instance().get(CATEGORY_CORE, CORE_LOG_LEVEL, DEFAULT_LOG_LEVEL));
@@ -36,4 +40,9 @@ void logger::init(const std::string& path)
 {
 	// TODO: implement
 	logger::init(LOG_LEVEL_OFF);
+}
+
+bool logger::validateLogLevel(LogLevel level)
+{
+	return (logger::logLevel > level);
 }
