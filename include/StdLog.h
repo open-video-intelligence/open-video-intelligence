@@ -42,19 +42,17 @@ public:
 		std::string message;
 
 		// [Date Time][PID/TID][filename][function:line] message
-		message += COLOR_STR[level];
 		message += currentDateTime();
 		message += stringFormat("[%d/%d]", getpid(), gettid());
-		message += stringFormat("[%s]", LOG_LEVEL_STR[level].c_str());
+		message += stringFormat("[%s]", LOG_LEVEL_STR[level]);
 		if (file)
 			message += stringFormat("[%s][%s:%d]", (std::strrchr(file, '/') ? std::strrchr(file, '/') + 1 : file), caller, line);
 		else
 			message += stringFormat("[%s][%s:%d]", file, caller, line);
 		message += " ";
 		message += stringFormat(format, args ... );
-		message += COLOR_STR[0]; // reset color
 
-		std::cout << message << std::endl;
+		std::cout << COLOR_STR[level] << message << COLOR_STR[0] << std::endl;
 	}
 
 private:
@@ -84,7 +82,7 @@ private:
 		return buf;
 	}
 
-	const std::vector<std::string> LOG_LEVEL_STR = {
+	const std::vector<const char*> LOG_LEVEL_STR = {
 		"none",
 		"D", // debug
 		"I", // info
