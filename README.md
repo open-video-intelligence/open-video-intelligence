@@ -7,7 +7,7 @@ Open Video Intelligence is an Open Source project. The aim of the Open Video Int
 - MinJe Ahn
 - SeungBae Shin
 
-## Committers
+## Reviewers
 - HaeJeong Kim
 - JiYong Min
 - MinJe Ahn
@@ -28,11 +28,11 @@ All Components are led by Reviewers and/or Maintainers. New Component can be sug
 | Configuration | config | Settings used to run the OVI core library |
 
 ## Build Requires
-- cmake (https://cmake.org/)
+- cmake (https://cmake.org/), ninja-build (https://ninja-build.org/)
 
-The cmake is cross-platform family of tools designed to build.
+The cmake is cross-platform family of tools designed to build and the ninja-build is a small build system with a focus on speed.
    ```console
-   $ sudo apt install g++ cmake
+   $ sudo apt install g++ cmake ninja-build
    ```
 - OpenTimelineIO (https://github.com/AcademySoftwareFoundation/OpenTimelineIO)
 
@@ -41,6 +41,7 @@ Cmake needs 3.18.2 or higher.
 Run the following command:
    ```console
    $ git clone https://github.com/AcademySoftwareFoundation/OpenTimelineIO.git
+   $ cd OpenTimelineIO
    $ git checkout cxx17
    $ mkdir build
    $ cd build
@@ -52,7 +53,7 @@ Run the following command:
 FFmpeg is the multimedia framework, able to decode, encode and transcode contents.
 Run the following command:
    ```console
-   $ sudo apt install ffmpeg
+   $ sudo apt install libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev ffmpeg
    ```
    **_NOTE:_** You need more requires to use plugins, please check [here](plugins/README.md).
 
