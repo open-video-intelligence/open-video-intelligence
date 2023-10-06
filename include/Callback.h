@@ -17,6 +17,7 @@
 #ifndef __OPEN_VIDEO_INTELLIGENCE_CALLBACK_H__
 #define __OPEN_VIDEO_INTELLIGENCE_CALLBACK_H__
 
+#include <string>
 #include <variant>
 #include <memory>
 
