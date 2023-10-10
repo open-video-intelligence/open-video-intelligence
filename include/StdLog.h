@@ -21,6 +21,7 @@
 
 #include <unistd.h>
 
+#include <cstdarg>
 #include <cstring>
 #include <ctime>
 #include <iostream>
@@ -56,18 +57,22 @@ public:
 	}
 
 private:
-	template<typename ... Args>
-	std::string stringFormat(const std::string& format, Args ... args)
+	std::string stringFormat(const std::string& format, ...)
 	{
-		int size_s = std::snprintf(nullptr, 0, format.c_str(), args ...) + 1; // Extra space for '\0'
-		if (size_s <= 0)
-			throw std::runtime_error("Error during formatting.");
+		std::va_list args1;
+		va_start(args1, format);
 
-		auto size = static_cast<size_t>(size_s);
-		std::unique_ptr<char[]> buf(new char[size]);
-		std::snprintf(buf.get(), size, format.c_str(), args ...);
+		std::va_list args2;
+		va_copy(args2, args1);
 
-		return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
+		size_t size = std::vsnprintf(nullptr, 0, format.c_str(), args1);
+		std::vector<char> buf(size + 1);
+		va_end(args1);
+
+		std::vsnprintf(buf.data(), buf.size(), format.c_str(), args2);
+		va_end(args2);
+
+		return std::string(buf.data(), size);
 	}
 
 	std::string currentDateTime()
