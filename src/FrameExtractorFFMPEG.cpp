@@ -113,7 +113,7 @@ static std::optional<videoInfo> __getVideoInfo(AVFormatContext* _formatCtx, cons
 				}
 			}
 
-			LOG_DEBUG("stream_id:%d codec:[%x]%s width:%d height:%d fps:%f bitRate:" PRId64 " frames:" PRId64,
+			LOG_DEBUG("stream_id:%d codec:[%x]%s width:%d height:%d fps:%f bitRate:%" PRId64 " frames:%" PRId64,
 				i, pVideoCodecPar->codec_id, avcodec_get_name(pVideoCodecPar->codec_id),
 				pVideoCodecPar->width, pVideoCodecPar->height,
 				av_q2d(_formatCtx->streams[i]->r_frame_rate), pVideoCodecPar->bit_rate,
@@ -157,7 +157,7 @@ static std::optional<audioInfo> __getAudioInfo(AVFormatContext* _formatCtx, cons
 
 			double fps = totalFrames / ((double)duration / AV_TIME_BASE);
 
-			LOG_DEBUG("stream_id:%d codec:[%x]%s bitRate:" PRId64 " samplePerSec:%d bitPerSample:%d frames:" PRId64 " fps:%f",
+			LOG_DEBUG("stream_id:%d codec:[%x]%s bitRate:%" PRId64 " samplePerSec:%d bitPerSample:%d frames:%" PRId64 " fps:%f",
 				i, pAudioCodecPar->codec_id, avcodec_get_name(pAudioCodecPar->codec_id),
 				pAudioCodecPar->bit_rate, pAudioCodecPar->sample_rate, pAudioCodecPar->bits_per_coded_sample,
 				totalFrames, fps);
