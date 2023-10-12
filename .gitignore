@@ -1,0 +1,13 @@
+
+# ignore cmake build
+build/
+
+# ignore cache
+templates/__pycache__
+
+# VisualStudioCode
+.vscode/
+
+# ignore test files
+*.mp4
+*.otio
