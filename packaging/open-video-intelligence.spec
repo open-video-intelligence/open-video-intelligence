@@ -12,8 +12,6 @@ BuildRequires: pkgconfig(libavutil)
 BuildRequires: pkgconfig(libavformat)
 BuildRequires: pkgconfig(libswresample)
 BuildRequires: pkgconfig(Imath)
-BuildRequires: pkgconfig(glib-2.0)
-BuildRequires: pkgconfig(gio-2.0)
 BuildRequires: pkgconfig(python3)
 BuildRequires: OpenTimelineIO-devel
 Requires(post): /sbin/ldconfig

@@ -20,8 +20,10 @@
 #include <cassert>
 #include <algorithm>
 #include <vector>
+#include <thread>
+#include <chrono>
+#include <atomic>
 #include <getopt.h>
-#include <glib.h>
 #include <ovi.h>
 #include "Log.h"
 
@@ -32,7 +34,6 @@
 #define CLMAGEN	"\x1b[95m"	//light magenta
 
 #define MAX_STRING_LEN	2048
-static GMainLoop *g_mainloop = nullptr;
 
 using namespace ovi;
 
@@ -52,7 +53,7 @@ struct PluginInfo
 	std::map<std::string, std::string>attrs;
 };
 
-static gboolean quit_program(gpointer user_data);
+static std::atomic_bool stopFlag;
 
 class CmdParser
 {
@@ -191,7 +192,7 @@ PluginInfo CmdParser::parsePluginInfo(const std::string& pluginStr)
 static void __session_error_cb(void *handle, ovi_error_e error, void *user_data)
 {
 	LOG_ERROR("__session_error_cb() is invoked, error:%d, user_data:%p", error, user_data);
-	g_idle_add(quit_program, nullptr);
+	stopFlag = true;
 }
 
 static void __session_progress_cb(void *handle, const char *progress, void *user_data)
@@ -201,11 +202,10 @@ static void __session_progress_cb(void *handle, const char *progress, void *user
 
 static void __session_state_changed_cb(void *handle, ovi_state_e previous, ovi_state_e current, void *user_data)
 {
-	LOG_DEBUG("__session_state_changed_cb() is invoked, previous:%d, current:%d\n", previous, current);
+	LOG_DEBUG("__session_state_changed_cb() is invoked, previous:%d, current:%d", previous, current);
 
-	if (previous == OVI_STATE_RENDER && current == OVI_STATE_IDLE)	{
-		g_idle_add(quit_program, nullptr);
-	}
+	if (previous == OVI_STATE_RENDER && current == OVI_STATE_IDLE)
+		stopFlag = true;
 }
 
 class SessionManager
@@ -374,15 +374,14 @@ void SessionManager::destroy(void)
 
 static void showUsage(void)
 {
-	std::cout << CLYELLOW "Usage:" CRESET << "\n"
-		<< "\tovi_session [Session Launch Options] [Application Options]" << "\n"
-		<< CLYELLOW "\nSession Launch Options:" CRESET << "\n"
+	std::cout << CLYELLOW "Usage:" CRESET << std::endl;
+	std::cout << "\tovi_session [Session Launch Options] [Application Options]" << std::endl;
+	std::cout << CLYELLOW "\nSession Launch Options:" CRESET << "\n"
 		<< "\t-i			Media path to analyze and edit" << CRED " (mandatory)" CRESET << "\n"
 		<< "\t-r			Render Plugin and its attrubutes" << CRED " (mandatory)" CRESET << "\n"
 		<< "\t-l			Plugins to link" << CRED " (mandatory)" CRESET << "\n"
 		<< "\t-skv			Video Frames count to skip analyze" << "\n"
 		<< "\t-v, -verbose		Logging level. Default 4. all:0 debug:1 info:2 warn:3 error:4 off:5" << "\n"
-		<< "\t-q			Quit program" << "\n"
 		<< CLMAGEN "\n\tPlugin Link Operators:" CRESET << "\n"
 		<< "\t\t&		Link plugins with AND. cut the file according to the analysis result" << "\n"
 		<< "\t\t|		Link plugins with OR. cut the file according to the analysis result" << "\n"
@@ -395,46 +394,7 @@ static void showUsage(void)
 		<< " $ " << CGREEN "ovi_session" CRESET << " -i ./movie.mp4 -r FFMPEGRender'(path=./result.mp4)' -skv 3 -l 'AudioDetect' -verbose 4" << "\n"
 		<< " $ " << CGREEN "ovi_session" CRESET << " -i ./movie.mp4 -skv 3 -l 'AudioDetect(dbThreshold=50)' -r OTIORender'(path=./result.otio)'" << "\n"
 		<< std::endl;
-}
-
-static gboolean quit_program(gpointer user_data)
-{
-	g_main_loop_quit(g_mainloop);
-
-	return G_SOURCE_REMOVE;
-}
-
-static void interpret(char *cmd)
-{
-	if (cmd && !strcmp(cmd, "q")) {
-		std::cout << CRED "Quit program" CRESET << std::endl;
-		quit_program(nullptr);
-	}
-}
-
-static gboolean input(GIOChannel *channel, GIOCondition condition, gpointer data)
-{
-	gchar buf[MAX_STRING_LEN];
-	gsize read;
-	GError *error = nullptr;
-
-	g_io_channel_read_chars(channel, buf, MAX_STRING_LEN, &read, &error);
-	buf[read] = '\0';
-	g_strstrip(buf);
-	interpret(buf);
-
-	return TRUE;
-}
-
-static void runLoop(void)
-{
-	GIOChannel *stdin_channel = g_io_channel_unix_new(0);
-	g_io_channel_set_flags(stdin_channel, G_IO_FLAG_NONBLOCK, nullptr);
-	g_io_add_watch(stdin_channel, G_IO_IN, (GIOFunc)input, nullptr);
-
-	g_mainloop = g_main_loop_new(nullptr, FALSE);
-	g_main_loop_run(g_mainloop);
-	g_main_loop_unref(g_mainloop);
+	std::cout << CLYELLOW "\nAbort:\n" CRESET << "\tPress Enter to abort the session.\n" << std::endl;
 }
 
 int main(int argc, char *argv[])
@@ -450,8 +410,17 @@ int main(int argc, char *argv[])
 
 		SessionManager sessionMgr(parser);
 		sessionMgr.run();
+		stopFlag = false;
 
-		runLoop();
+		std::thread t([]() {
+			std::cin.ignore();
+			std::cout << CRED "Quit program" CRESET << std::endl;
+			stopFlag = true;
+		});
+		t.detach();
+
+		while (!stopFlag)
+			std::this_thread::sleep_for(std::chrono::seconds(1));
 
 		return 0;
 
