@@ -74,6 +74,7 @@ Run the following command:
 Now, you can use the following detect type python plugins.
 - [AudioDetectPy](#AudioDetectPy)
 - [FaceDetectPy](#FaceDetectPy)
+- [ObjectDetectPy](#ObjectDetectPy)
 
 ## AudioDetectPy
 Provides the decibels of audio.
@@ -89,6 +90,8 @@ Run the following command:
 
 ## FaceDetectPy
 Provides face detection results using [MediaPipe](https://developers.google.com/mediapipe). </br>
+You can also get the opposite result through the 'inverse' attribute value.
+Please refer to the plugin description for more information.
 
 ### Requires
 1) MediaPipe (https://developers.google.com/mediapipe) </br>
@@ -112,6 +115,38 @@ create a 'models' folder if necessary:</br>
    │   │   └── blaze_face_short_range.tflite
    │   ├── CMakeLists.txt
    │   └── faceDetect.py
+   ├── __init__.py
+   ├── CMakeLists.txt
+   └── README.md
+   ```
+
+## ObjectDetectPy
+Provides object detection results using [MediaPipe](https://developers.google.com/mediapipe). </br>
+Finds objects that match the specified 'Label' attribute value.
+Please refer to the plugin description for more information.
+
+### Requires
+1) MediaPipe (https://developers.google.com/mediapipe) </br>
+MediaPipe Framework is the low-level component used to build efficient on-device machine learning pipelines, similar to the premade MediaPipe Solutions.</br>
+Run the following command:
+   ```console
+   # Requires the latest pip
+   $ pip install --upgrade pip
+
+   $ pip install mediapipe
+   ```
+
+2) Pretrained model</br>
+This plugin requires the pretrained model. (`efficientdet_lite0.tflite`)</br>
+The pretrained model can be found [here](https://developers.google.com/mediapipe/solutions/vision/object_detector).</br>
+Add model files by referring to the following structure.
+create a 'models' folder if necessary:</br>
+   ```bash
+   ├── objectDetectPy
+   │   ├── models
+   │   │   └── efficientdet_lite0.tflite
+   │   ├── CMakeLists.txt
+   │   └── objectDetect.py
    ├── __init__.py
    ├── CMakeLists.txt
    └── README.md
