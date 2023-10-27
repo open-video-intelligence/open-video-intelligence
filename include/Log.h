@@ -38,6 +38,7 @@ typedef enum {
 void init(void);
 void init(int level);
 void init(const std::string& path);
+void reset();
 bool validateLogLevel(LogLevel level);
 
 } // ovi::logger

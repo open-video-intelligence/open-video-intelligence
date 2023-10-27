@@ -24,6 +24,8 @@
 #include <cstdarg>
 #include <cstring>
 #include <ctime>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -54,6 +56,26 @@ public:
 		message += stringFormat(format, args ... );
 
 		std::cout << COLOR_STR[level] << message << COLOR_STR[0] << std::endl;
+	}
+
+	void setFileLogger(const std::string& path)
+	{
+		try {
+			std::filesystem::path fsPath = path;
+			std::filesystem::create_directories(fsPath.parent_path());
+
+			_fstream.open(fsPath, std::ios_base::app);
+			if (!_fstream.fail())
+				std::cout.rdbuf(_fstream.rdbuf());
+		} catch (std::filesystem::filesystem_error const& e) {
+			std::cout << e.what() << std::endl;
+		}
+	}
+
+	void unsetFileLogger()
+	{
+		if (_fstream.is_open())
+			_fstream.close();
 	}
 
 private:
@@ -102,6 +124,8 @@ private:
 		"\33[33m", // if warning, yellow
 		"\33[31m", // if error, red
 	};
+
+	std::fstream _fstream {};
 };
 
 }
