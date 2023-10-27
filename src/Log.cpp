@@ -25,6 +25,13 @@ constexpr int DEFAULT_LOG_LEVEL = LOG_LEVEL_ALL;
 
 static bool initialized = false;
 static LogLevel logLevel = LOG_LEVEL_OFF;
+
+void internal_error(const char* func, int line, const char* message);
+}
+
+void logger::internal_error(const char* func, int line, const char* message)
+{
+	std::cout << "logger::" << func << ":" << line << " " << message << std::endl;
 }
 
 void logger::init(void)
@@ -42,8 +49,40 @@ void logger::init(int level)
 
 void logger::init(const std::string& path)
 {
-	// TODO: implement
+	if (path.empty()) {
+		internal_error(__func__, __LINE__, "Fail to Invalid Path");
+		return;
+	}
+
+#if defined(__TIZEN__)
+	// TODO: need to check file logger
 	init(LOG_LEVEL_OFF);
+#else
+	init();
+	stdLogger.setFileLogger(path);
+#endif
+
+	if (access(path.c_str(), W_OK) < 0) {
+		if (errno == EACCES || errno == EPERM)
+			internal_error(__func__, __LINE__, "Fail to open path: Permission Denied");
+		else
+			internal_error(__func__, __LINE__, "Fail to open path: Invalid Path");
+
+		reset();
+		return;
+	}
+}
+
+void logger::reset()
+{
+	logLevel = LOG_LEVEL_OFF;
+	initialized = false;
+
+#if defined(__TIZEN__)
+	// do nothing...
+#else
+	stdLogger.unsetFileLogger();
+#endif
 }
 
 bool logger::validateLogLevel(LogLevel level)
