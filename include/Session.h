@@ -66,6 +66,7 @@ private:
 	std::shared_ptr<Accumulator> _accumulator;
 	std::shared_ptr<IFrameExtractor> _frameExtractor;
 	std::shared_ptr<AvSynchronizer> _avSynchronizer;
+	MediaInfoPtr _mediaInfo;
 
 	std::string _renderUid;
 	std::string _mediaPath;

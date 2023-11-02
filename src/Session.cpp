@@ -197,8 +197,9 @@ void Session::start()
 		throw Exception(OVI_ERROR_INVALID_OPERATION, "invalid link");
 
 	_frameExtractor = std::shared_ptr<IFrameExtractor>(FrameExtractorFactory::create(_mediaPath));
+	_mediaInfo = _frameExtractor->mediaInfo();
 
-	_pluginManager->validate(_frameExtractor->hasVideo(), _frameExtractor->hasAudio());
+	_pluginManager->validate(_mediaInfo->hasVideo(), _mediaInfo->hasAudio());
 	_pluginManager->validateAttrs(_renderUid);
 	_pluginManager->setAllAttrs();
 
@@ -306,7 +307,7 @@ void Session::runDataFlow()
 										_pluginManager,
 										_accumulator,
 										_completeCb,
-										((_frameExtractor->hasVideo()) ? _skipFrames : 0));
+										((_mediaInfo->hasVideo()) ? _skipFrames : 0));
 
 	if (_progress_cb.callback)
 		_dataFlow->setProgressCallback(this,
@@ -319,22 +320,22 @@ void Session::runDataFlow()
 void Session::runRender()
 {
 	//ToDo: RenderTask refactoring
-	const auto [ type, frames, framerate ] = [&] {
-		if (_frameExtractor->hasAudio() && !_frameExtractor->hasVideo())
-			return std::make_tuple(MEDIA_TYPE_AUDIO,
-								_frameExtractor->audioFrames(),
-								_frameExtractor->audioFramerate());
+	const auto [ type, frameNum, framerate ] = [&] {
+		if (_mediaInfo->hasAudio() && !_mediaInfo->hasVideo())
+			return std::make_tuple(_mediaInfo->audio()->type(),
+								_mediaInfo->audio()->frameNum(),
+								_mediaInfo->audio()->framerate());
 		else
-			return std::make_tuple(MEDIA_TYPE_VIDEO,
-								_frameExtractor->videoFrames(),
-								_frameExtractor->videoFramerate());
+			return std::make_tuple(_mediaInfo->video()->type(),
+								_mediaInfo->video()->frameNum(),
+								_mediaInfo->video()->framerate());
 	}();
 
 	_render = std::make_unique<RenderTask>(_mediaPath,
 										_pluginManager,
 										_renderUid,
 										type,
-										frames,
+										frameNum,
 										framerate,
 										_accumulator->accumulated(),
 										_completeCb,

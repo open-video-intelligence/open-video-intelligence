@@ -21,8 +21,10 @@
 using namespace ovi;
 
 AvSynchronizer::AvSynchronizer(std::shared_ptr<IFrameExtractor> frameExtractor)
-	: _frameExtractor(frameExtractor), _videoEOF(!_frameExtractor->hasVideo()),
-	_audioEOF(!_frameExtractor->hasAudio()), _pts(NO_PTS)
+	: _frameExtractor(frameExtractor),
+	_videoEOF(!_frameExtractor->mediaInfo()->hasVideo()),
+	_audioEOF(!_frameExtractor->mediaInfo()->hasAudio()),
+	_pts(NO_PTS)
 {
 }
 
@@ -42,7 +44,7 @@ std::vector<FramePackPtr> AvSynchronizer::getNextAudio()
 		return frames;
 
 	/* If content has AV, audio frames longer than video are discarded because content is edited based on video frames. */
-	if (_videoEOF && _frameExtractor->hasVideo())
+	if (_videoEOF && _frameExtractor->mediaInfo()->hasVideo())
 		return frames;
 
 	while (!_audioEOF) {

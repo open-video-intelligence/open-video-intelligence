@@ -24,6 +24,7 @@
 
 #include "IFrameExtractor.h"
 #include "FramePackerFactory.h"
+#include "MediaInfoFFMPEG.h"
 
 namespace ovi {
 
@@ -59,36 +60,6 @@ struct AvDecoderFactory
 	static std::unique_ptr<AvDecoder> createVideoDecoder(int streamId, const std::string& mediaPath);
 };
 
-class MediaInfo
-{
-protected:
-	int _streamId { -1 };
-	double _framerate {};
-	int64_t _frames {};
-
-public:
-	virtual ~MediaInfo() = default;
-
-	int streamId() const;
-	bool hasStream() const;
-	double framerate() const;
-	int64_t frameCnt() const;
-};
-
-class VideoInfo : public MediaInfo
-{
-public:
-	VideoInfo(AVFormatContext* formatCtx, const std::string& mediaPath);
-	~VideoInfo() override = default;
-};
-
-class AudioInfo : public MediaInfo
-{
-public:
-	AudioInfo(AVFormatContext* formatCtx, const std::string& mediaPath);
-	~AudioInfo() override = default;
-};
-
 class FrameExtractorFFMPEG : public IFrameExtractor
 {
 public:
@@ -97,20 +68,15 @@ public:
 
 	FramePackPtr nextVideo() const override;
 	FramePackPtr nextAudio() const override;
-	double videoFramerate() const override;
-	double audioFramerate() const override;
-	int64_t videoFrames() const override;
-	int64_t audioFrames() const override;
-	bool hasVideo() const override;
-	bool hasAudio() const override;
+
+	MediaInfoPtr mediaInfo() const override;
 
 private:
 	void setup(const std::string& mediaPath);
 
+	std::shared_ptr<MediaInfoFFMPEG> _mediaInfo;
 	std::unique_ptr<AvDecoder> _videoDecoder;
 	std::unique_ptr<AvDecoder> _audioDecoder;
-	std::unique_ptr<MediaInfo> _videoInfo;
-	std::unique_ptr<MediaInfo> _audioInfo;
 };
 
 }

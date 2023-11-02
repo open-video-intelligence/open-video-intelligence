@@ -30,26 +30,6 @@ extern "C" {
 
 using namespace ovi;
 
-struct videoInfo {
-	unsigned int stream_id {};
-	int codec_id {};
-	int width {};
-	int height {};
-	double fps {};
-	int64_t bitRate {};
-	int64_t frames {};
-};
-
-struct audioInfo {
-	unsigned int stream_id {};
-	int codec_id {};
-	int64_t bitRate {};
-	int samplePerSec {};
-	int bitPerSample {};
-	int64_t frames {};
-	double fps {};
-};
-
 static void __printFFmpegErrorStr(std::string function, int err)
 {
 	char errorStr[AV_ERROR_MAX_STRING_SIZE] = {0};
@@ -91,90 +71,115 @@ static int64_t __calculateTotalFrames(std::unique_ptr<AvDecoder> decoder)
 	return static_cast<int64_t>(decoder->frameNum());
 }
 
-static std::optional<videoInfo> __getVideoInfo(AVFormatContext* _formatCtx, const std::string& mediaPath)
+void VideoInfoFFMPEG::extract()
 {
-	for (unsigned int i = 0; i < _formatCtx->nb_streams; i++) {
-		if (_formatCtx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
-			if (_formatCtx->streams[i]->disposition & AV_DISPOSITION_ATTACHED_PIC) {
-				LOG_DEBUG("it's an attached picture(thumbnail)");
-				return std::nullopt;
-			}
+	if (_stream->disposition & AV_DISPOSITION_ATTACHED_PIC) {
+		LOG_DEBUG("it's an attached picture(thumbnail)");
+		return;
+	}
 
-			AVCodecParameters* pVideoCodecPar = _formatCtx->streams[i]->codecpar;
-			if (!pVideoCodecPar)
-				return std::nullopt;
+	AVCodecParameters* pVideoCodecPar = _stream->codecpar;
+	if (!pVideoCodecPar)
+		return;
 
-			int64_t totalFrames = _formatCtx->streams[i]->nb_frames;
-			if (totalFrames == 0) {
-				totalFrames = __calculateTotalFrames(AvDecoderFactory::createVideoDecoder(i, mediaPath));
-				if (totalFrames == 0) {
-					LOG_ERROR("failed to get total frame count");
-					return std::nullopt;
-				}
-			}
-
-			LOG_DEBUG("stream_id:%d codec:[%x]%s width:%d height:%d fps:%f bitRate:%" PRId64 " frames:%" PRId64,
-				i, pVideoCodecPar->codec_id, avcodec_get_name(pVideoCodecPar->codec_id),
-				pVideoCodecPar->width, pVideoCodecPar->height,
-				av_q2d(_formatCtx->streams[i]->r_frame_rate), pVideoCodecPar->bit_rate,
-				totalFrames);
-
-			return videoInfo {
-				.stream_id = i,
-				.codec_id = pVideoCodecPar->codec_id,
-				.width = pVideoCodecPar->width,
-				.height = pVideoCodecPar->height,
-				.fps = av_q2d(_formatCtx->streams[i]->r_frame_rate),
-				.bitRate = pVideoCodecPar->bit_rate,
-				.frames = totalFrames
-			};
+	int64_t totalFrames = _stream->nb_frames;
+	if (totalFrames == 0) {
+		totalFrames = __calculateTotalFrames(AvDecoderFactory::createVideoDecoder(_streamId, _mediaPath));
+		if (totalFrames == 0) {
+			LOG_ERROR("failed to get total frame count");
+			return;
 		}
 	}
 
-	return std::nullopt;
+	LOG_DEBUG("stream_id:%d codec:[%x]%s width:%d height:%d fps:%f bitRate:%" PRId64 " frames:%" PRId64,
+		_streamId, pVideoCodecPar->codec_id, avcodec_get_name(pVideoCodecPar->codec_id),
+		pVideoCodecPar->width, pVideoCodecPar->height,
+		av_q2d(_stream->r_frame_rate), pVideoCodecPar->bit_rate,
+		totalFrames);
+
+	BaseProperties baseProps = std::make_tuple(
+		av_q2d(_stream->r_frame_rate), pVideoCodecPar->bit_rate, totalFrames
+	);
+	VideoProperties videoProps = std::make_tuple(
+		baseProps, pVideoCodecPar->width, pVideoCodecPar->height
+	);
+	setProperties(videoProps);
+
+	_success = true;
 }
 
-static std::optional<audioInfo> __getAudioInfo(AVFormatContext* _formatCtx, const std::string& mediaPath)
+void AudioInfoFFMPEG::extract()
 {
-	for (unsigned int i = 0; i < _formatCtx->nb_streams; i++) {
-		if (_formatCtx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
-			AVCodecParameters* pAudioCodecPar = _formatCtx->streams[i]->codecpar;
-			if (!pAudioCodecPar)
-				return std::nullopt;
+	AVCodecParameters* pAudioCodecPar = _stream->codecpar;
+	if (!pAudioCodecPar)
+		return;
 
-			int64_t duration = av_rescale_q(_formatCtx->streams[i]->duration,
-											_formatCtx->streams[i]->time_base,
-											AV_TIME_BASE_Q); //milliseconds
+ 	//milliseconds
+	int64_t duration = av_rescale_q(_stream->duration, _stream->time_base, AV_TIME_BASE_Q);
 
-			int64_t totalFrames = _formatCtx->streams[i]->nb_frames;
-			if (totalFrames == 0) {
-				totalFrames = __calculateTotalFrames(AvDecoderFactory::createAudioDecoder(i, mediaPath));
-				if (totalFrames == 0) {
-					LOG_ERROR("failed to get total frame count");
-					return std::nullopt;
-				}
-			}
-
-			double fps = totalFrames / ((double)duration / AV_TIME_BASE);
-
-			LOG_DEBUG("stream_id:%d codec:[%x]%s bitRate:%" PRId64 " samplePerSec:%d bitPerSample:%d frames:%" PRId64 " fps:%f",
-				i, pAudioCodecPar->codec_id, avcodec_get_name(pAudioCodecPar->codec_id),
-				pAudioCodecPar->bit_rate, pAudioCodecPar->sample_rate, pAudioCodecPar->bits_per_coded_sample,
-				totalFrames, fps);
-
-			return audioInfo {
-				.stream_id = i,
-				.codec_id = pAudioCodecPar->codec_id,
-				.bitRate = pAudioCodecPar->bit_rate,
-				.samplePerSec = pAudioCodecPar->sample_rate,
-				.bitPerSample = pAudioCodecPar->bits_per_coded_sample,
-				.frames = totalFrames,
-				.fps = fps
-			};
+	int64_t totalFrames = _stream->nb_frames;
+	if (totalFrames == 0) {
+		totalFrames = __calculateTotalFrames(AvDecoderFactory::createAudioDecoder(_streamId, _mediaPath));
+		if (totalFrames == 0) {
+			LOG_ERROR("failed to get total frame count");
+			return;
 		}
 	}
 
-	return std::nullopt;
+	double fps = totalFrames / ((double)duration / AV_TIME_BASE);
+
+	LOG_DEBUG("stream_id:%d codec:[%x]%s bitRate:%" PRId64 " samplePerSec:%d bitPerSample:%d frames:%" PRId64 " fps:%f",
+		_streamId, pAudioCodecPar->codec_id, avcodec_get_name(pAudioCodecPar->codec_id),
+		pAudioCodecPar->bit_rate, pAudioCodecPar->sample_rate, pAudioCodecPar->bits_per_coded_sample,
+		totalFrames, fps);
+
+	BaseProperties baseProps = std::make_tuple(
+		fps, pAudioCodecPar->bit_rate, totalFrames
+	);
+	AudioProperties audioPros = std::make_tuple(
+		baseProps, pAudioCodecPar->sample_rate, pAudioCodecPar->bits_per_coded_sample
+	);
+	setProperties(audioPros);
+
+	_success = true;
+}
+
+void MediaInfoFFMPEG::extract()
+{
+	AVFormatContext* pFormatCtx = nullptr;
+
+	LOG_INFO("media_path: %s", _mediaPath.c_str());
+
+	try {
+		pFormatCtx = __openFFmpeg(_mediaPath);
+		if (!pFormatCtx)
+			throw Exception(OVI_ERROR_INVALID_OPERATION, "failed to pFormatCtx");
+
+		for (unsigned int i = 0; i < pFormatCtx->nb_streams; i++) {
+			if (pFormatCtx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+				VideoInfoFFMPEG videoInfo(pFormatCtx->streams[i], i, _mediaPath);
+				if (videoInfo.success()) {
+					_video = std::make_shared<VideoInfo>(videoInfo.properties());
+					_videoStreamId = videoInfo.streamId();
+				}
+			}
+
+			if (pFormatCtx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
+				AudioInfoFFMPEG audioInfo(pFormatCtx->streams[i], i, _mediaPath);
+				if (audioInfo.success()) {
+					_audio = std::make_shared<AudioInfo>(audioInfo.properties());
+					_audioStreamId = audioInfo.streamId();
+				}
+			}
+		}
+	} catch (const Exception& e) {
+		if (pFormatCtx)
+			avformat_close_input(&pFormatCtx);
+		LOG_ERROR("%s", e.what());
+		throw;
+	}
+
+	avformat_close_input(&pFormatCtx);
 }
 
 AvDecoder::AvDecoder(AVMediaType mediaType, int streamId, std::string mediaPath,
@@ -390,7 +395,7 @@ FramePackPtr FrameExtractorFFMPEG::nextVideo() const
 	if (!_videoDecoder)
 		throw Exception(OVI_ERROR_INVALID_OPERATION, "invalid _videoDecoder");
 
-	return _videoDecoder->frame(_videoInfo->framerate(), _videoInfo->frameCnt());
+	return _videoDecoder->frame(_mediaInfo->video()->framerate(), _mediaInfo->video()->frameNum());
 }
 
 FramePackPtr FrameExtractorFFMPEG::nextAudio() const
@@ -398,113 +403,26 @@ FramePackPtr FrameExtractorFFMPEG::nextAudio() const
 	if (!_audioDecoder)
 		throw Exception(OVI_ERROR_INVALID_OPERATION, "invalid _audioDecoder");
 
-	return _audioDecoder->frame(_audioInfo->framerate(), _audioInfo->frameCnt());
+	return _audioDecoder->frame(_mediaInfo->audio()->framerate(), _mediaInfo->audio()->frameNum());
 }
 
 void FrameExtractorFFMPEG::setup(const std::string& mediaPath)
 {
-	AVFormatContext* pFormatCtx = nullptr;
-
 	LOG_INFO("media_path: %s", mediaPath.c_str());
 
-	try {
-		pFormatCtx = __openFFmpeg(mediaPath);
-		if (!pFormatCtx)
-			throw Exception(OVI_ERROR_INVALID_OPERATION, "failed to _formatCtx");
+	_mediaInfo = std::make_shared<MediaInfoFFMPEG>(mediaPath);
 
-		_videoInfo = std::unique_ptr<MediaInfo>(new VideoInfo(pFormatCtx, mediaPath));
-		if (_videoInfo->hasStream()) {
-			LOG_INFO("has video");
-			_videoDecoder = AvDecoderFactory::createVideoDecoder(_videoInfo->streamId(), mediaPath);
-		}
+	if (_mediaInfo->hasVideo())
+		_videoDecoder = AvDecoderFactory::createVideoDecoder(_mediaInfo->videoStreamId(), mediaPath);
 
-		_audioInfo = std::unique_ptr<MediaInfo>(new AudioInfo(pFormatCtx, mediaPath));
-		if (_audioInfo->hasStream()) {
-			LOG_INFO("has audio");
-			_audioDecoder = AvDecoderFactory::createAudioDecoder(_audioInfo->streamId(), mediaPath);
-		}
+	if (_mediaInfo->hasAudio())
+		_audioDecoder = AvDecoderFactory::createAudioDecoder(_mediaInfo->audioStreamId(), mediaPath);
 
-		if (!_videoDecoder && !_audioDecoder)
-			throw Exception(OVI_ERROR_NOT_SUPPORTED_MEDIA, "no av stream");
-
-	} catch(const Exception& e) {
-		if (pFormatCtx)
-			avformat_close_input(&pFormatCtx);
-		LOG_ERROR("%s", e.what());
-		throw;
-	}
-
-	avformat_close_input(&pFormatCtx);
+	if (!_videoDecoder && !_audioDecoder)
+		throw Exception(OVI_ERROR_NOT_SUPPORTED_MEDIA, "no av stream");
 }
 
-double FrameExtractorFFMPEG::videoFramerate() const
+MediaInfoPtr FrameExtractorFFMPEG::mediaInfo() const
 {
-	return _videoInfo->framerate();
-}
-
-double FrameExtractorFFMPEG::audioFramerate() const
-{
-	return _audioInfo->framerate();
-}
-
-int64_t FrameExtractorFFMPEG::videoFrames() const
-{
-	return _videoInfo->frameCnt();
-}
-
-int64_t FrameExtractorFFMPEG::audioFrames() const
-{
-	return _audioInfo->frameCnt();
-}
-
-bool FrameExtractorFFMPEG::hasVideo() const
-{
-	return static_cast<bool>(_videoDecoder);
-}
-
-bool FrameExtractorFFMPEG::hasAudio() const
-{
-	return static_cast<bool>(_audioDecoder);
-}
-
-int MediaInfo::streamId() const
-{
-	return _streamId;
-}
-
-bool MediaInfo::hasStream() const
-{
-	return (_streamId != -1);
-}
-
-double MediaInfo::framerate() const
-{
-	return _framerate;
-}
-
-int64_t MediaInfo::frameCnt() const
-{
-	return _frames;
-}
-
-VideoInfo::VideoInfo(AVFormatContext* formatCtx, const std::string& mediaPath)
-{
-	auto vInfo = __getVideoInfo(formatCtx, mediaPath);
-
-	if (vInfo.has_value()) {
-		_streamId = vInfo->stream_id;
-		_framerate = vInfo->fps;
-		_frames = vInfo->frames;
-	}
-}
-
-AudioInfo::AudioInfo(AVFormatContext* formatCtx, const std::string& mediaPath)
-{
-	auto aInfo = __getAudioInfo(formatCtx, mediaPath);
-
-	if (aInfo.has_value()) {
-		_streamId = aInfo->stream_id;
-		_framerate = aInfo->fps;
-		_frames = aInfo->frames;
-	}
+	return std::dynamic_pointer_cast<MediaInfo>(_mediaInfo);
 }
