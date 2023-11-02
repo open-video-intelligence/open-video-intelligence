@@ -136,7 +136,11 @@ AudioFramePack::AudioFramePack(const AudioFramePack &ref)
 {
 	std::tie(_channels, _samplerate, _format, _samples) = ref.audioProperties();
 	assign((void*)(ref.data()), ref.size(), ref.frameNum(), ref.pts(), ref.framerate(), ref.duration());
+#if defined(FF_API_OLD_CHANNEL_LAYOUT)
+	setChannelLayout(ref.channelLayout2());
+#else
 	setChannelLayout(ref.channelLayout());
+#endif
 }
 
 FramePackPtr AudioFramePack::convert(const std::vector<int>& dstFormats)
@@ -159,6 +163,13 @@ void AudioFramePack::setChannelLayout(uint64_t channelLayout)
 	_channelLayout = channelLayout;
 }
 
+#if defined(FF_API_OLD_CHANNEL_LAYOUT)
+void AudioFramePack::setChannelLayout(AVChannelLayout channelLayout)
+{
+	_channelLayout2 = channelLayout;
+}
+#endif
+
 AudioProps AudioFramePack::audioProperties() const
 {
 	return std::make_tuple(_channels, _samplerate, _format, _samples);
@@ -172,6 +183,9 @@ void AudioFramePack::dump2Log(const std::string& tag) const
 	s << " type:" << std::to_string(_type) << ", format:" << _format;
 	s << ", channels:" << _channels << ", samplerate:" << _samplerate;
 	s << ", samples:" << _samples << ", channelLayout:" << _channelLayout;
+#if defined(FF_API_OLD_CHANNEL_LAYOUT)
+	s << ", channelLayout2:" << _channelLayout2.u.mask;
+#endif
 
 	LOG_DEBUG("%s", s.str().c_str());
 }

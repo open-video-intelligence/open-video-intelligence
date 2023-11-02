@@ -87,7 +87,15 @@ FramePackPtr FormatConverterAudioFFMPEG::resample(const AudioFramePack* aFrame, 
 		char errStr[AV_ERROR_MAX_STRING_SIZE] {};
 
 		auto [ channels, samplerate, format, samples ] = aFrame->audioProperties();
+#if defined(FF_API_OLD_CHANNEL_LAYOUT)
+		auto channelLayout = aFrame->channelLayout2();
+		if (channelLayout.nb_channels <= 0)
+			throw Exception(OVI_ERROR_INVALID_PARAMETER, "invalid channel-layout");
+#else
 		auto channelLayout = aFrame->channelLayout();
+		if (channelLayout == 0)
+			throw Exception(OVI_ERROR_INVALID_PARAMETER, "invalid channel-layout");
+#endif
 
 		AVSampleFormat avSrcFormat = toAVSampleFormat(format);
 		AVSampleFormat avDestFormat = toAVSampleFormat(dstFormat);
@@ -96,9 +104,6 @@ FramePackPtr FormatConverterAudioFFMPEG::resample(const AudioFramePack* aFrame, 
 
 		if (!aFrame->valid() || avSrcFormat == AV_SAMPLE_FMT_NONE)
 			throw Exception(OVI_ERROR_INVALID_PARAMETER, "invalid frame");
-
-		if (channelLayout == 0)
-			throw Exception(OVI_ERROR_INVALID_PARAMETER, "invalid channel-layout");
 
 		int srcPlanes = (av_sample_fmt_is_planar(avSrcFormat) ? channels : 1);
 		srcData = (uint8_t**)calloc(srcPlanes, sizeof(uint8_t*));
@@ -113,13 +118,21 @@ FramePackPtr FormatConverterAudioFFMPEG::resample(const AudioFramePack* aFrame, 
 		if (size < 0)
 			throw Exception(OVI_ERROR_INVALID_OPERATION, av_make_error_string(errStr, AV_ERROR_MAX_STRING_SIZE, size));
 
+#if defined(FF_API_OLD_CHANNEL_LAYOUT)
+		ret = swr_alloc_set_opts2(&swrContext,           // allocating a new context
+						&channelLayout, avDestFormat, samplerate,  // dest ch_layout, format, samplerate
+						&channelLayout, avSrcFormat, samplerate,   // src ch_layout, format, samplerate
+						0, nullptr);  
+		if (ret < 0)
+			throw Exception(OVI_ERROR_INVALID_OPERATION, av_make_error_string(errStr, AV_ERROR_MAX_STRING_SIZE, ret));
+#else
 		swrContext = swr_alloc_set_opts(nullptr,           // allocating a new context
 						channelLayout, avDestFormat, samplerate,  // dest ch_layout, format, samplerate
 						channelLayout, avSrcFormat, samplerate,   // src ch_layout, format, samplerate
 						0, nullptr);                        // for logger
-
 		if (!swrContext)
 			throw Exception(OVI_ERROR_INVALID_OPERATION, "swresample error");
+#endif
 
 		ret = swr_init(swrContext);
 		if (ret < 0)

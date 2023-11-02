@@ -17,6 +17,10 @@
 #ifndef __OPEN_VIDEO_INTELLIGENCE_FRAME_PACK_H__
 #define __OPEN_VIDEO_INTELLIGENCE_FRAME_PACK_H__
 
+extern "C" {
+#include <libavutil/channel_layout.h>
+}
+
 #include <tuple>
 #include <vector>
 #include "Types.h"
@@ -98,9 +102,14 @@ public:
 	void dump2Log(const std::string& tag) const override;
 	void dump2File(const std::string& path, bool increase = false) const override;
 
-	void setChannelLayout(uint64_t channelLayout);
 	AudioProps audioProperties() const;
+
+	void setChannelLayout(uint64_t channelLayout);
 	uint64_t channelLayout() const { return _channelLayout; }
+#if defined(FF_API_OLD_CHANNEL_LAYOUT)
+	void setChannelLayout(AVChannelLayout channelLayout);
+	AVChannelLayout channelLayout2() const { return _channelLayout2; }
+#endif
 
 private:
 	int _channels {};
@@ -108,6 +117,9 @@ private:
 	AudioFormat _format { AUDIO_FORMAT_NONE };
 	int _samples {};
 	uint64_t _channelLayout {};
+#if defined(FF_API_OLD_CHANNEL_LAYOUT)
+	AVChannelLayout _channelLayout2 {};
+#endif
 	static IFormatConverterPtr _converter;
 };
 
