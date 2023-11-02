@@ -47,25 +47,25 @@ bool validateLogLevel(LogLevel level);
 #include <dlog.h>
 
 #define LOG_DEBUG(...) do { \
-	if (validateLogLevel(ovi::logger::LOG_LEVEL_DEBUG)) \
+	if (ovi::logger::validateLogLevel(ovi::logger::LOG_LEVEL_DEBUG)) \
 		break; \
 	dlog_print (DLOG_DEBUG, TAG_NAME, __VA_ARGS__); \
 } while(0)
 
 #define LOG_INFO(...) do { \
-	if (validateLogLevel(ovi::logger::LOG_LEVEL_INFO)) \
+	if (ovi::logger::validateLogLevel(ovi::logger::LOG_LEVEL_INFO)) \
 		break; \
 	dlog_print (DLOG_INFO, TAG_NAME, __VA_ARGS__) \
 } while(0)
 
 #define LOG_WARN(...) do { \
-	if (validateLogLevel(ovi::logger::LOG_LEVEL_WARNING)) \
+	if (ovi::logger::validateLogLevel(ovi::logger::LOG_LEVEL_WARNING)) \
 		break; \
 	dlog_print (DLOG_WARN, TAG_NAME, __VA_ARGS__) \
 } while(0)
 
 #define LOG_ERROR(...) do { \
-	if (validateLogLevel(ovi::logger::LOG_LEVEL_ERROR)) \
+	if (ovi::logger::validateLogLevel(ovi::logger::LOG_LEVEL_ERROR)) \
 		break; \
 	dlog_print (DLOG_ERROR, TAG_NAME, __VA_ARGS__) \
 } while(0)
@@ -80,25 +80,25 @@ bool validateLogLevel(LogLevel level);
 static ovi::StdLog stdLogger;
 
 #define LOG_DEBUG(...) do { \
-	if (validateLogLevel(ovi::logger::LOG_LEVEL_DEBUG)) \
+	if (ovi::logger::validateLogLevel(ovi::logger::LOG_LEVEL_DEBUG)) \
 		break; \
 	stdLogger.print(ovi::logger::LOG_LEVEL_DEBUG, __FILE__, __func__, __LINE__, __VA_ARGS__); \
 } while(0)
 
 #define LOG_INFO(...) do { \
-	if (validateLogLevel(ovi::logger::LOG_LEVEL_INFO)) \
+	if (ovi::logger::validateLogLevel(ovi::logger::LOG_LEVEL_INFO)) \
 		break; \
 	stdLogger.print(ovi::logger::LOG_LEVEL_INFO, __FILE__, __func__, __LINE__, __VA_ARGS__); \
 } while(0)
 
 #define LOG_WARN(...) do { \
-	if (validateLogLevel(ovi::logger::LOG_LEVEL_WARNING)); \
+	if (ovi::logger::validateLogLevel(ovi::logger::LOG_LEVEL_WARNING)) \
 		break; \
 	stdLogger.print(ovi::logger::LOG_LEVEL_WARNING, __FILE__, __func__, __LINE__, __VA_ARGS__); \
 } while(0)
 
 #define LOG_ERROR(...) do { \
-	if (validateLogLevel(ovi::logger::LOG_LEVEL_ERROR)) \
+	if (ovi::logger::validateLogLevel(ovi::logger::LOG_LEVEL_ERROR)) \
 		break; \
 	stdLogger.print(ovi::logger::LOG_LEVEL_ERROR, __FILE__, __func__, __LINE__, __VA_ARGS__); \
 } while(0)
