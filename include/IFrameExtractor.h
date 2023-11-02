@@ -18,6 +18,7 @@
 #define __OPEN_VIDEO_INTELLIGENCE_IFRAME_EXTRACTOR_H__
 
 #include "FramePack.h"
+#include "MediaInfo.h"
 
 namespace ovi {
 
@@ -29,12 +30,7 @@ public:
 	virtual FramePackPtr nextVideo() const = 0;
 	virtual FramePackPtr nextAudio() const = 0;
 
-	virtual double videoFramerate() const = 0;
-	virtual double audioFramerate() const = 0;
-	virtual int64_t videoFrames() const = 0;
-	virtual int64_t audioFrames() const = 0;
-	virtual bool hasVideo() const = 0;
-	virtual bool hasAudio() const = 0;
+	virtual MediaInfoPtr mediaInfo() const = 0;
 };
 
 }
