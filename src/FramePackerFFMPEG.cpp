@@ -18,6 +18,7 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavutil/imgutils.h>
+#include <libavutil/channel_layout.h>
 }
 
 #include "FramePackerFFMPEG.h"
@@ -167,20 +168,28 @@ FramePackPtr FramePackerAvAudio::pack(void* srcFrame, size_t frameNum, double pt
 		return nullptr;
 	}
 
-	size_t bufferSize = bytesPerSample * frame->nb_samples * frame->channels;
+#if defined(FF_API_OLD_CHANNEL_LAYOUT)
+	int channels = frame->ch_layout.nb_channels;
+	AVChannelLayout channelLayout = frame->ch_layout;
+#else
+	int channels = frame->channels;
+	uint64_t channelLayout = frame->channel_layout;
+#endif
+
+	size_t bufferSize = bytesPerSample * frame->nb_samples * channels;
 	void* buffer = av_malloc(bufferSize);
 	if (!buffer) {
 		LOG_ERROR("failed to av_malloc()");
 		return nullptr;
 	}
 
-	auto newFrame = std::make_unique<AudioFramePack>(frame->channels, frame->sample_rate, oviFormat, frame->nb_samples);
-	newFrame->setChannelLayout(frame->channel_layout);
+	auto newFrame = std::make_unique<AudioFramePack>(channels, frame->sample_rate, oviFormat, frame->nb_samples);
+	newFrame->setChannelLayout(channelLayout);
 
 	if (av_sample_fmt_is_planar(format)) {
 		size_t offset = 0;
 		size_t planeSize = bytesPerSample * frame->nb_samples;
-		for (int ch = 0; ch < frame->channels; ch++) {
+		for (int ch = 0; ch < channels; ch++) {
 			memcpy(static_cast<char*>(buffer) + offset, frame->data[ch], planeSize);
 			offset += planeSize;
 		}
