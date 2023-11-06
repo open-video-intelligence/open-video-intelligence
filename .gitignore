@@ -11,3 +11,4 @@ templates/__pycache__
 # ignore test files
 *.mp4
 *.otio
+!tests/*
