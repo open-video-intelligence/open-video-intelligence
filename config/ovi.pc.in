@@ -5,7 +5,7 @@ libdir=@CMAKE_INSTALL_FULL_LIBDIR@
 
 Name: lib@FW_NAME@
 Description: Open Video Intelligence library.
-URL: https://github.sec.samsung.net/tizen-vault/open-video-intelligence
+URL: https://github.com/open-video-intelligence/open-video-intelligence
 Version: @VERSION@
 CFlags: -I${includedir}
 Libs: -L${libdir} -l@FW_NAME@ -pthread
