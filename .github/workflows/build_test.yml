@@ -59,6 +59,16 @@ jobs:
         cd build && \
         cmake .. && \
         sudo make install && \
+        sudo apt install libgtest-dev libgmock-dev && \
+        cd /usr/src/gtest && \
+        sudo cmake CMakeLists.txt && \
+        sudo make && \
+        sudo cp lib/*.a /usr/lib && \
+        cd /usr/src/googletest/googlemock/ && \
+        sudo mkdir build && \
+        sudo cmake .. && \
+        sudo make && \
+        sudo cp lib/*.a /usr/lib && \
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
 
     - name: Configure CMake
@@ -73,9 +83,9 @@ jobs:
         ./ovi_build.sh ${{env.BUILD_TYPE}}
 
     - name: Test
-      working-directory: ${{ steps.strings.outputs.build-output-dir }}
+      working-directory: ${{ github.workspace }}
       # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: |
         sudo ldconfig && \
-        /usr/local/bin/ovi_plugins --list-all
+        ./ovi_unittest.sh
