@@ -124,10 +124,12 @@ After unittest or testsuite run, you can check the code coverage
    $ ./ovi_gcov.sh
    ....
    Overall coverage rate:
-     lines......: 77.6% (919 of 1185 lines)
-     functions..: 89.1% (155 of 174 functions)
+     lines......: 64.3% (1637 of 2547 lines)
+     functions..: 72.8% (289 of 397 functions)
+   Overall coverage rate:
+     lines......: 25.5% (187 of 734 lines)
+     functions..: 50.8% (60 of 118 functions)
    ```
-   ![image](https://media.github.sec.samsung.net/user/33676/files/77387ad8-c457-4fce-b004-ba8d13234cc9)
 
 ## License
 Apache 2.0, Please refer to [LICENSE.APLv2](LICENSE.APLv2) file.
