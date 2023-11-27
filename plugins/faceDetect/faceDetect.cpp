@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include <opencv2/highgui.hpp>
 #include <opencv2/objdetect.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgproc/imgproc_c.h>
@@ -30,7 +29,7 @@ using namespace ovi;
 class FaceDetect : public IPluginProcess
 {
 public:
-	FaceDetect() = default;
+	FaceDetect();
 	~FaceDetect() = default;
 
 	int setAttrs(const std::map<std::string, std::string>& attrs) override;
@@ -46,6 +45,17 @@ private:
 	double _scale { 1.5 };
 	int _minNeighbors { 5 };
 };
+
+FaceDetect::FaceDetect()
+{
+	_faceCascade.load(HAAR_FACE);
+	if (_faceCascade.empty())
+		throw ovi::Exception(OVI_ERROR_INVALID_OPERATION, "face model load failed.");
+
+	_eyeCascade.load(HAAR_EYES);
+	if (_eyeCascade.empty())
+		throw ovi::Exception(OVI_ERROR_INVALID_OPERATION, "eyes model load failed.");
+}
 
 int FaceDetect::setAttrs(const std::map<std::string, std::string>& attrs)
 {
@@ -105,16 +115,6 @@ Outcome FaceDetect::process(ovi::FramePack *frame)
 	if (!image.data)
 		throw ovi::Exception(OVI_ERROR_INVALID_OPERATION, "image.data is empty");
 
-	if (_faceCascade.empty()) {
-		_faceCascade.load(HAAR_FACE);
-		if (_faceCascade.empty())
-			throw ovi::Exception(OVI_ERROR_INVALID_OPERATION, "face model load failed.");
-
-		_eyeCascade.load(HAAR_EYES);
-		if (_eyeCascade.empty())
-			throw ovi::Exception(OVI_ERROR_INVALID_OPERATION, "eyes model load failed.");
-	}
-
 	Mat gray = toGray(image, format);
 
 	std::vector<Rect> faces;
@@ -138,7 +138,6 @@ Outcome FaceDetect::process(ovi::FramePack *frame)
 				static_cast<double>(faces[i].width),
 				static_cast<double>(faces[i].height)
 			};
-
 			ret.list.push_back(r);
 		}
 	}
