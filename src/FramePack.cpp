@@ -69,7 +69,7 @@ VideoFramePack::VideoFramePack(const VideoFramePack &ref)
 	: FramePack(MEDIA_TYPE_VIDEO)
 {
 	std::tie(_width, _height, _format) = ref.videoProperties();
-	assign((void*)(ref.data()), ref.size(), ref.frameNum(), ref.pts(), ref.framerate(), ref.duration());
+	assign(ref.data(), ref.size(), ref.frameNum(), ref.pts(), ref.framerate(), ref.duration());
 }
 
 FramePackPtr VideoFramePack::convert(const std::vector<int>& dstFormats)
@@ -135,7 +135,7 @@ AudioFramePack::AudioFramePack(const AudioFramePack &ref)
 	: FramePack(MEDIA_TYPE_AUDIO)
 {
 	std::tie(_channels, _samplerate, _format, _samples) = ref.audioProperties();
-	assign((void*)(ref.data()), ref.size(), ref.frameNum(), ref.pts(), ref.framerate(), ref.duration());
+	assign(ref.data(), ref.size(), ref.frameNum(), ref.pts(), ref.framerate(), ref.duration());
 #if defined(FF_API_OLD_CHANNEL_LAYOUT)
 	setChannelLayout(ref.channelLayout2());
 #else
