@@ -43,16 +43,13 @@ public:
 	void print(int level, const char* file, const char* caller, int line, const std::string& format, Args ... args)
 	{
 		std::string message;
+		std::filesystem::path p(file);
 
 		// [Date Time][PID/TID][filename][function:line] message
 		message += currentDateTime();
 		message += stringFormat("[%d/%d]", getpid(), gettid());
 		message += stringFormat("[%s]", LOG_LEVEL_STR[level]);
-		if (file)
-			message += stringFormat("[%s][%s:%d]", (std::strrchr(file, '/') ? std::strrchr(file, '/') + 1 : file), caller, line);
-		else
-			message += stringFormat("[%s][%s:%d]", file, caller, line);
-		message += " ";
+		message += stringFormat("[%s][%s:%d] ", p.filename().c_str(), caller, line);
 		message += stringFormat(format, args ... );
 
 		std::cout << COLOR_STR[level] << message << COLOR_STR[0] << std::endl;
