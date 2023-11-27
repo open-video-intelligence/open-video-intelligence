@@ -30,11 +30,11 @@ extern "C" {
 
 using namespace ovi;
 
-static void __printFFmpegErrorStr(std::string function, int err)
+static void __printFFmpegErrorStr(const char* function, int err)
 {
 	char errorStr[AV_ERROR_MAX_STRING_SIZE] = {0};
 	av_make_error_string(errorStr, AV_ERROR_MAX_STRING_SIZE, err);
-	LOG_ERROR("failed to %s. err:%d", function.c_str(), errorStr);
+	LOG_ERROR("failed to %s. err:%s", function, errorStr);
 }
 
 static AVFormatContext* __openFFmpeg(const std::string& _path)

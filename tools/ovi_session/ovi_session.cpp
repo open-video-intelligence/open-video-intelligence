@@ -152,8 +152,8 @@ void CmdParser::parsePlugin(const std::string& linkedPlugins)
 		return vec;
 	}();
 
-	for (const auto& pluginStr : pluginList)
-		_linkedPlugins.push_back(parsePluginInfo(pluginStr));
+	std::transform(pluginList.begin(), pluginList.end(), std::back_inserter(_linkedPlugins),
+		[this](const auto& str) { return parsePluginInfo(str); });
 }
 
 PluginInfo CmdParser::parsePluginInfo(const std::string& pluginStr)

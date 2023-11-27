@@ -598,14 +598,15 @@ std::string FFmpegEffectSpec::effectAttrDefaultValue(const std::string& effectNa
 		return {};
 	}
 
+	auto found = std::find_if(attrs->second.begin(), attrs->second.end(), [&attrName](const AttributeSpec& attr) {
+		return attr.name == attrName;});
 
-	for (const auto& attr : attrs->second) {
-		if (attr.name == attrName)
-			return attr.defaultValue;
+	if (found == attrs->second.end()) {
+		std::cout << "Not supported effect attribute:" << attrName << std::endl;
+		return {};
 	}
 
-	std::cout << "Not supported effect attribute:" << attrName << std::endl;
-	return {};
+	return found->defaultValue;
 }
 
 MetaForm FFmpegEffectSpec::inputMetaForm(const std::string& effectName)
