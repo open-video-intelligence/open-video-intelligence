@@ -21,8 +21,7 @@ from enum import IntEnum
 OP_AND: Final = '&'
 OP_OR: Final = '|'
 OP_COLON: Final = ':'
-OP_EXTRACT: Final = '>>'
-OP_ADD: Final = '+'
+OP_UNCUT: Final = '~'
 
 
 class PluginType(IntEnum):
