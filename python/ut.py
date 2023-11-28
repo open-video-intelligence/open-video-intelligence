@@ -20,6 +20,7 @@ from unittest import TestCase, main
 from typing import Final
 
 OUTPUT: Final = './output.otio'
+TESTMEDIA: Final = '../tests/unittest/resource/fd_hide.mp4'
 
 
 class Lever:
@@ -171,7 +172,7 @@ class OviSessionMethodTest(TestCase):
 
     def testSessionSetMediaPath(self) -> None:
         self.assertTrue(
-            self.session.set_media_path('../unittest/resource/fd_hide.mp4'))
+            self.session.set_media_path(TESTMEDIA))
 
     def testSessionSetMediaPathWithNoFile(self) -> None:
         self.assertFalse(
@@ -229,7 +230,7 @@ class OviSessionStartStopTest(TestCase):
             self.session.set_state_changed_callback(state_cb, None))
 
         self.assertTrue(
-            self.session.set_media_path('../unittest/resource/fd_hide.mp4'))
+            self.session.set_media_path(TESTMEDIA))
 
         self.assertTrue(
             self.session.set_render(render, OUTPUT))
