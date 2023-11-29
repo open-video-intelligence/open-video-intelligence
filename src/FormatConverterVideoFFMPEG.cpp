@@ -103,12 +103,12 @@ FramePackPtr FormatConverterVideoFFMPEG::scale(const VideoFramePack* vFrame, Vid
 		if (!data)
 			throw Exception(OVI_ERROR_INVALID_OPERATION, "out of memory");
 
-		int ret = av_image_fill_arrays(src.slice, src.stride, (const uint8_t *)vFrame->data(),
+		int ret = av_image_fill_arrays(src.slice, src.stride, static_cast<const uint8_t*>(vFrame->data()),
 					srcFormat, width, height, 1);
 		if (ret < 0)
 			throw Exception(OVI_ERROR_INVALID_OPERATION, av_make_error_string(errStr, AV_ERROR_MAX_STRING_SIZE, ret));
 
-		ret = av_image_fill_arrays(dest.slice, dest.stride, (const uint8_t *)data,
+		ret = av_image_fill_arrays(dest.slice, dest.stride, static_cast<const uint8_t*>(data),
 					destFormat, width, height, 1);
 		if (ret < 0)
 			throw Exception(OVI_ERROR_INVALID_OPERATION, av_make_error_string(errStr, AV_ERROR_MAX_STRING_SIZE, ret));
@@ -119,7 +119,7 @@ FramePackPtr FormatConverterVideoFFMPEG::scale(const VideoFramePack* vFrame, Vid
 		if (!swsContext)
 			throw Exception(OVI_ERROR_INVALID_OPERATION, "swscale error");
 
-		ret = sws_scale(swsContext, (const uint8_t * const *)src.slice, src.stride,
+		ret = sws_scale(swsContext, static_cast<const uint8_t* const*>(src.slice), src.stride,
 					0, height, dest.slice, dest.stride);
 		if (ret < 0)
 			throw Exception(OVI_ERROR_INVALID_OPERATION, av_make_error_string(errStr, AV_ERROR_MAX_STRING_SIZE, ret));

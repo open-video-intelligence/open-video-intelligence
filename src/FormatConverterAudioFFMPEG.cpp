@@ -106,7 +106,7 @@ FramePackPtr FormatConverterAudioFFMPEG::resample(const AudioFramePack* aFrame, 
 			throw Exception(OVI_ERROR_INVALID_PARAMETER, "invalid frame");
 
 		int srcPlanes = (av_sample_fmt_is_planar(avSrcFormat) ? channels : 1);
-		srcData = (uint8_t**)calloc(srcPlanes, sizeof(uint8_t*));
+		srcData = static_cast<uint8_t**>(calloc(srcPlanes, sizeof(uint8_t*)));
 		if (!srcData)
 			throw Exception(OVI_ERROR_INVALID_OPERATION, "out of memory");
 
@@ -122,7 +122,7 @@ FramePackPtr FormatConverterAudioFFMPEG::resample(const AudioFramePack* aFrame, 
 		ret = swr_alloc_set_opts2(&swrContext,           // allocating a new context
 						&channelLayout, avDestFormat, samplerate,  // dest ch_layout, format, samplerate
 						&channelLayout, avSrcFormat, samplerate,   // src ch_layout, format, samplerate
-						0, nullptr);  
+						0, nullptr);
 		if (ret < 0)
 			throw Exception(OVI_ERROR_INVALID_OPERATION, av_make_error_string(errStr, AV_ERROR_MAX_STRING_SIZE, ret));
 #else
@@ -138,12 +138,12 @@ FramePackPtr FormatConverterAudioFFMPEG::resample(const AudioFramePack* aFrame, 
 		if (ret < 0)
 			throw Exception(OVI_ERROR_INVALID_OPERATION, av_make_error_string(errStr, AV_ERROR_MAX_STRING_SIZE, ret));
 
-		ret = swr_convert(swrContext, destData, samples, (const uint8_t **)srcData, samples);
+		ret = swr_convert(swrContext, destData, samples, const_cast<const uint8_t**>(srcData), samples);
 		if (ret < 0)
 			throw Exception(OVI_ERROR_INVALID_OPERATION, av_make_error_string(errStr, AV_ERROR_MAX_STRING_SIZE, ret));
 
 		auto convertFrame = FramePackPtr(new AudioFramePack(channels, samplerate, dstFormat, samples));
-		convertFrame->assign((void*)destData[0], size, aFrame->frameNum(), aFrame->pts(), aFrame->framerate(), aFrame->duration());
+		convertFrame->assign(static_cast<void*>(destData[0]), size, aFrame->frameNum(), aFrame->pts(), aFrame->framerate(), aFrame->duration());
 		auto aFrame = dynamic_cast<AudioFramePack*>(convertFrame.get());
 		assert(aFrame);
 		aFrame->setChannelLayout(channelLayout);
