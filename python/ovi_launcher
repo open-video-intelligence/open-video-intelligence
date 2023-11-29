@@ -1,0 +1,192 @@
+#!/usr/bin/env python
+# Copyright (c) 2023 Samsung Electronics Co., Ltd All Rights Reserved
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import ovi
+import asyncio
+import time
+import argparse
+import re
+
+
+class Statement:
+    state: bool = False
+
+    def __init__(self) -> None:
+        pass
+
+    def toggle(self) -> None:
+        self.state = not self.state
+
+
+def print_plugin_info(plugin_type):
+    if plugin_type == 'all':
+        plugins = ovi.plugin_list(ovi.PluginType.PLUGIN_TYPE_NONE)
+    elif plugin_type == 'render':
+        plugins = ovi.plugin_list(ovi.PluginType.PLUGIN_TYPE_RENDER)
+    elif plugin_type == 'video':
+        plugins = ovi.plugin_list(ovi.PluginType.PLUGIN_TYPE_VIDEO_DETECT)
+    elif plugin_type == 'audio':
+        plugins = ovi.plugin_list(ovi.PluginType.PLUGIN_TYPE_AUDIO_DETECT)
+    else:
+        return
+
+    i = 1
+    for item in plugins:
+        print(str('[{0}]'.format(i)).ljust(60, '-'))
+        print('name:\t\t', item.name)
+        print('type:\t\t', item.type)
+        print('description:\t', item.description)
+        print('attribute:')
+        for attr in item.attributes:
+            print('\t{0:15s}  {1:10s}  {2}'.format(attr.key, attr.type, attr.description))
+        print('\n')
+        i += 1
+
+
+st = Statement()
+
+
+async def monitor():
+    while st.state is False:
+        time.sleep(1)
+
+
+def error_cb(error, userdata):
+    print('E :', error, userdata)
+
+
+def prog_cb(msg, userdata):
+    print('P :', msg, userdata)
+
+
+def state_cb(pre, cur, userdata):
+    print('S :', pre, cur, userdata)
+    if pre == ovi.SessionState.OVI_STATE_RENDER and cur == ovi.SessionState.OVI_STATE_IDLE:
+        st.toggle()
+
+
+def main(args):
+    s = ovi.Session()
+    print("get_state :", s.get_state())
+
+    tokens = args.link.split()
+    uid_list: list = []
+    for item in tokens:
+        key = item.split('(')[0]
+
+        if key[0] == '~':
+            uid_list.append(ovi.OP_UNCUT)
+            key = key.replace('~', '')
+
+        if len(key) == 1:
+            uid_list.append(key)
+            continue
+
+        uid = s.add_plugin(key)
+        uid_list.append(uid)
+
+        found = re.search(r'\(.*\)', item)
+        if not found:
+            continue
+
+        attrlist = found.group(0)[1:-1].split(';')
+        attrs: dict = {}
+        for pair in attrlist:
+            kv = pair.split('=')
+            attrs[kv[0]] = kv[1]
+
+        s.set_plugin_attribute(uid, attrs)
+
+    s.link_serivces(uid_list)
+
+    s.set_error_callback(error_cb, "ERROR CALLBACK")
+    s.set_progress_callback(prog_cb, "PROGRESS CALLBACK")
+    s.set_state_changed_callback(state_cb, "STATE CHANGED CALLBACK")
+
+    renderid = s.add_plugin(args.render)
+    s.set_render(renderid, args.output)
+
+    s.set_skip_video_frames(args.skip)
+
+    s.set_media_path(args.input)
+
+    s.start()
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(monitor())
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        prog='ovi_launcher',
+        usage='./%(prog)s [options]',
+        formatter_class=argparse.RawTextHelpFormatter
+    )
+    parser.add_argument(
+        '-p', '--plugins',
+        choices=['all', 'render', 'video', 'audio'],
+        help='Show the plugin list'
+    )
+    parser.add_argument(
+        '-i', '--input',
+        type=str,
+        metavar='PATH',
+        help='Input media path',
+        required=True
+    )
+    parser.add_argument(
+        '-r', '--render',
+        type=str,
+        metavar='NAME',
+        help='Render plugin name (default: FFMPEGRender)',
+        default='FFMPEGRender'
+    )
+    parser.add_argument(
+        '-o', '--output',
+        type=str,
+        metavar='PATH',
+        help='Output file path (default: result.mp4)',
+        default='./result.mp4'
+    )
+    parser.add_argument(
+        '-l', '--link',
+        type=str,
+        metavar='EXPRESSIONS',
+        help='Plugins to link (default: FaceDetect with default attributes) \n\n'
+             'Plugin Link Operators:\n'
+             '\t&\tLink plugins with AND. cut the file according to the analysis result\n'
+             '\t|\tLink plugins with OR. cut the file according to the analysis result\n'
+             '\t:\tApply effects to the plugin. It must be behind the plugin\n'
+             '\t~\tAnalyze video without cutting file. It must be used to apply effects only\n\n'
+             'Plugin\'s Attributes Formatting:\n'
+             '\t{Plugin}({Attribute1}={Value1};{Attribute2}={Value2};...)\n'
+             '\tDo not use space in the parenthesis\n'
+             '\te.g. FaceDetect(scale=1.2;minNeighbors=3)',
+        default='FaceDetect'
+    )
+    parser.add_argument(
+        '-s', '--skip',
+        type=int,
+        metavar='COUNT',
+        help='Video Frames count to skip analyze (default: 0)',
+        default=0
+    )
+
+    args = parser.parse_args()
+    if args.plugins:
+        print_plugin_info(args.plugins)
+        exit()
+
+    main(args)
